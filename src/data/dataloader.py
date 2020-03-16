@@ -1,23 +1,11 @@
-''' Loads train, validation and test datasets and stores them in dataloaders.
-'''
-
+""" Loads train, validation and test datasets and stores them in dataloaders.
+"""
 import os
-import sys
-import torch
-from torch.nn import functional as F
-import numpy as np
-from torchtext import data
-from torchtext import datasets
-from torchtext.vocab import Vectors, GloVe, FastText
-from torchtext.data import Iterator, BucketIterator
-from sklearn.metrics import jaccard_score
-
 import pandas as pd
-import numpy as np
-import os
-import pdb
-import matplotlib.pyplot as plt
 
+from torchtext import data
+from torchtext.vocab import GloVe, FastText
+from torchtext.data import Iterator, BucketIterator
 
 
 class BatchWrapper():
@@ -58,7 +46,9 @@ class BatchWrapper():
         for batch in self.dataloader:
             x = getattr(batch, self.x_var)
             if not (self.y_vars is None):
-                y = torch.cat([getattr(batch, feat).unsqueeze(1) for feat in self.y_vars], dim=1).float()
+                y = torch.cat(
+                    [getattr(batch, feat).unsqueeze(1) for feat in self.y_vars], dim=1
+                ).float()
             else:
                 y = None
             data = (x, y)
@@ -71,7 +61,7 @@ class BatchWrapper():
         return len(self.dataloader)
 
 
-def preprocess(train_df, id_col='id', text_col='text', label_cols=[]):
+def preprocess(train_df, id_col="id", text_col="text", label_cols=[]):
     """
     Processes the inputs and the labels. Tokenizes the inputs by extracting individual
     words from the sentence. Also assigns LABEL or TEXT Field objects to columns.
@@ -105,7 +95,7 @@ def preprocess(train_df, id_col='id', text_col='text', label_cols=[]):
 
     fields = []
     for col in train_df.columns:
-        if col == id_col or col == 'Unnamed: 0':
+        if col == id_col or col == "Unnamed: 0":
             fields.append((col, None))
         elif col == text_col:
             fields.append((col, TEXT))
@@ -113,12 +103,21 @@ def preprocess(train_df, id_col='id', text_col='text', label_cols=[]):
             fields.append((col, LABEL))
         else:
             fields.append((col, None))
-            print('Warning: {} column is not a text, label or id column.'.format(col))
+            print("Warning: {} column is not a text, label or id column.".format(col))
 
     return fields, TEXT, LABEL
 
 
-def get_nlp_dataset(fields, TEXT, LABEL, vocab='FastText', folder='./', train_fname='train.csv', val_fname='val.csv', test_fname=None):
+def get_nlp_dataset(
+        fields,
+        TEXT,
+        LABEL,
+        vocab="FastText",
+        folder="./",
+        train_fname="train.csv",
+        val_fname="val.csv",
+        test_fname=None,
+):
     """
     Builds library with a given vocabulary. Forms train, validation and test datasets.
 
@@ -156,31 +155,42 @@ def get_nlp_dataset(fields, TEXT, LABEL, vocab='FastText', folder='./', train_fn
     """
     train_dataset, valid_dataset = data.TabularDataset.splits(
         path=folder,
-        train=train_fname, validation=val_fname,
-        format='csv',
+        train=train_fname,
+        validation=val_fname,
+        format="csv",
         skip_header=True,
-        fields=fields)
+        fields=fields,
+    )
 
     test_dataset = None
     if test_fname:
         test_dataset = data.TabularDataset(
             path=os.path.join(folder, test_fname),
-            format='csv',
+            format="csv",
             skip_header=True,
-            fields=fields)
+            fields=fields,
+        )
 
-    if vocab.lower() == 'glove':
-        TEXT.build_vocab(train_dataset, vectors=GloVe(name='6B', dim=300))
-    elif vocab.lower() == 'fasttext':
+    if vocab.lower() == "glove":
+        TEXT.build_vocab(train_dataset, vectors=GloVe(name="6B", dim=300))
+    elif vocab.lower() == "fasttext":
         TEXT.build_vocab(train_dataset, vectors=FastText())
     else:
-        raise ValueError('Pretrained embeddings of GloVe or FastText are the only options.')
-        
+        raise ValueError(
+            "Pretrained embeddings of GloVe or FastText are the only options."
+        )
+
     return train_dataset, valid_dataset, test_dataset, TEXT, LABEL
 
 
-
-def get_nlp_dataloader(train_dataset, valid_dataset, test_dataset=None, batch_size=64, id_col='id', text_col='text', label_cols=[]):
+def get_nlp_dataloader(
+    train_dataset,
+    valid_dataset,
+    test_dataset=None,
+    batch_size=64,
+    text_col="text",
+    label_cols=[],
+):
     """
     Builds library with a given vocabulary. Forms train, validation and test datasets.
 
@@ -211,7 +221,7 @@ def get_nlp_dataloader(train_dataset, valid_dataset, test_dataset=None, batch_si
     test_dataloader
         BatchWrapper, iterable test dataset
     """
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     train_iter, val_iter = BucketIterator.splits(
         (train_dataset, valid_dataset),
@@ -228,30 +238,53 @@ def get_nlp_dataloader(train_dataset, valid_dataset, test_dataset=None, batch_si
     test_dataloader = None
     if test_dataset:
         test_iter = Iterator(
-            test_dataset, 
+            test_dataset,
             batch_size=batch_size,
-            device=device, 
-            sort=False, 
-            sort_within_batch=False, 
-            repeat=False
+            device=device,
+            sort=False,
+            sort_within_batch=False,
+            repeat=False,
         )
-        valid_dataloader = BatchWrapper(val_iter, text_col, label_cols)
-    
+        test_dataloader = BatchWrapper(test_iter, text_col, label_cols)
+
     return train_dataloader, valid_dataloader, test_dataloader
 
-if __name__ == '__main__':
-    
+
+if __name__ == "__main__":
+
     folder = "~/Oyku/Vela/org_data"
-    id_col = 'id'
-    text_col = 'text'
-    train_fname = 'train.csv'
-    val_fname = 'val.csv'
-    test_fname = 'val.csv'
+    id_col = "id"
+    text_col = "text"
+    train_fname = "train.csv"
+    val_fname = "val.csv"
+    test_fname = "val.csv"
     batch_size = 64
 
-    train_df = pd.read_csv(os.path.join(folder, 'train.csv'))
-    label_cols = [col for col in train_df.columns if not(col == 'Unnamed: 0') and not(col == id_col) and not (col == text_col)]
+    train_df = pd.read_csv(os.path.join(folder, "train.csv"))
+    label_cols = [
+        col
+        for col in train_df.columns
+        if not (col == "Unnamed: 0") and not (col == id_col) and not (col == text_col)
+    ]
 
-    fields, TEXT, LABEL = preprocess(train_df, id_col=id_col, text_col=text_col, label_cols=label_cols)
-    train_dataset, valid_dataset, test_dataset, TEXT, LABEL = get_nlp_dataset(fields, TEXT, LABEL, vocab='FastText', folder=folder, train_fname=train_fname, val_fname=val_fname, test_fname=test_fname)
-    train_dataloader, valid_dataloader, test_dataloader = get_nlp_dataloader(train_dataset, valid_dataset, test_dataset, batch_size, id_col, text_col, label_cols)
+    fields, TEXT, LABEL = preprocess(
+        train_df, id_col=id_col, text_col=text_col, label_cols=label_cols
+    )
+    train_dataset, valid_dataset, test_dataset, TEXT, LABEL = get_nlp_dataset(
+        fields,
+        TEXT,
+        LABEL,
+        vocab="FastText",
+        folder=folder,
+        train_fname=train_fname,
+        val_fname=val_fname,
+        test_fname=test_fname,
+    )
+    train_dataloader, valid_dataloader, test_dataloader = get_nlp_dataloader(
+        train_dataset,
+        valid_dataset,
+        test_dataset,
+        batch_size,
+        text_col,
+        label_cols,
+    )

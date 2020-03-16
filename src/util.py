@@ -1,29 +1,16 @@
-''' Utility functions used in training the CategoryPredictor.
-'''
+""" Utility functions used in training the CategoryPredictor.
+"""
 
 import os
-import sys
+import numpy as np
 import torch
-from torch.nn import functional as F
-import numpy as np
-from torchtext import data
-from torchtext import datasets
-from torchtext.vocab import Vectors, GloVe, FastText
-from torchtext.data import Iterator, BucketIterator
-from sklearn.metrics import jaccard_score
-import pandas as pd
-import numpy as np
-import os
-import pdb
-import matplotlib.pyplot as plt
+
 from scipy.spatial.distance import dice
-
-from gensim.test.utils import datapath
-from gensim.models.fasttext import FastText, load_facebook_vectors
+from sklearn.metrics import jaccard_score
 from gensim.models import KeyedVectors
-import torch
 
 from tqdm.notebook import tqdm
+
 
 def clip_gradient(model, clip_value=0.95):
     """
@@ -45,7 +32,9 @@ def clip_gradient(model, clip_value=0.95):
         p.grad.data.clamp_(-clip_value, clip_value)
 
 
-def get_test_predictions(model, test_dataloader, label_embed, threshold=0.5, metric='jaccard'):
+def get_test_predictions(
+        model, test_dataloader, label_embed, threshold=0.5, metric="jaccard"
+):
     """
     Predicts on the test data and returns its evaluation metrics and the predictions.
 
@@ -79,10 +68,12 @@ def get_test_predictions(model, test_dataloader, label_embed, threshold=0.5, met
         preds = torch.sigmoid(preds).data.numpy()
         pred_labels = (preds > threshold) + 0
         test_preds.append(pred_labels)
-        if metric == 'jaccard':
-            score = jaccard_score(y, pred_labels, average='samples')
-        elif metric == 'dice':
-            batch_score = [dice(y[i,:], pred_labels[i,:]) for i in range(pred_labels.shape[0])]
+        if metric == "jaccard":
+            score = jaccard_score(y, pred_labels, average="samples")
+        elif metric == "dice":
+            batch_score = [
+                dice(y[i, :], pred_labels[i, :]) for i in range(pred_labels.shape[0])
+            ]
             score = np.mean(batch_score)
         avg_score += score
         n_test += x.size(0)
@@ -108,6 +99,7 @@ def load_fasttext(bin_path="./.vector_cache/wiki.en.vec"):
     fasttext_embed = KeyedVectors.load_word2vec_format(bin_path, binary=False)
     return fasttext_embed
 
+
 def label_word_embeddings(label_cols, fasttext_embed):
     """
     Collects word embeddings of all words used in category description.
@@ -128,13 +120,14 @@ def label_word_embeddings(label_cols, fasttext_embed):
     """
     label_embed = {}
     for label in label_cols:
-        words = label.split('_')
+        words = label.split("_")
         word_embeds = []
         for word in words:
             word = word.lower()
-            if word in fasttext_embed and (word != 'and' and word != 'services'):
-                word_embeds.append(torch.from_numpy(fasttext_embed[word]).reshape([1, 1, -1]))
+            if word in fasttext_embed and (word != "and" and word != "services"):
+                word_embeds.append(
+                    torch.from_numpy(fasttext_embed[word]).reshape([1, 1, -1])
+                )
         label_embed[label] = word_embeds
 
     return label_embed
-
