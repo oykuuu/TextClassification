@@ -1,6 +1,8 @@
 """ Loads train, validation and test datasets and stores them in dataloaders.
 """
 import os
+import re
+import string
 import pandas as pd
 
 from torchtext import data
@@ -86,7 +88,8 @@ def preprocess(train_df, id_col="id", text_col="text", label_cols=[]):
     LABEL
         torchtext.data.Field, defines how to convert label columns data into Tensor
     """
-    tokenize = lambda x: x.split()
+    #tokenize = lambda x: x.split()
+    tokenize = lambda x: re.findall(r'\w+', x)
     # inputs are sequential as the order of the words are important in a sentence.
     TEXT = data.Field(sequential=True, tokenize=tokenize, lower=True)
     # label column has two values: 0, 1. So it isn't sequential and it doesn't
