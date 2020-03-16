@@ -8,3 +8,13 @@ Below is the model architecture of the CategoryPredictor.
 
 ![model_arch](https://user-images.githubusercontent.com/33582865/76808913-81a96c00-67bf-11ea-84cb-f1fb1dabfdb8.png)
 
+
+## Environment Setup
+
+The conda environment can be recreated using the following command.
+
+`conda create -f environment.yaml`
+
+To use the conda environment in a Jupyter notebook, run:
+
+`python -m ipykernel install --user --name text_env --display-name "Python (text_env)"`
