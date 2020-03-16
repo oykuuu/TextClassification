@@ -85,7 +85,6 @@ def train_epoch(
         opt = optim.Adam(model.parameters(), lr=learning_rate)
         criterion = nn.BCEWithLogitsLoss(reduction="sum")
 
-        epochs = 4
         count = 0
         best_jaccard = -99
         best_model = None
