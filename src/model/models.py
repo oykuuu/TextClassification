@@ -13,6 +13,27 @@ class RecurrentNetwork(nn.Module):
             num_class=46,
             lstm_layers=2,
     ):
+        """
+        Recurrent neural network component of CategoryPredictor. Processes
+        the short description sentences.
+
+        Parameters
+        ----------
+        hidden_dim
+            int, size of the hidden layer in LSTM.
+        embed_dim
+            int, embedding size
+        num_linear
+            int, number of linear layers
+        num_class
+            int, number of unique category labels
+        lstm_layers
+            int, number of LSTM layers
+
+        Returns
+        -------
+        None
+        """
         super(RecurrentNetwork, self).__init__()
 
         self.encoder = nn.LSTM(emb_dim, hidden_dim, num_layers=lstm_layers, dropout=0.3)
@@ -23,6 +44,20 @@ class RecurrentNetwork(nn.Module):
         self.lstm_linear = nn.Linear(hidden_dim, num_class)
 
     def forward(self, embed):
+        """
+        Forward propagation.
+
+        Parameters
+        ----------
+        embed
+            torch.Tensor, embeddings of inputs
+
+        Returns
+        -------
+        lstm_output
+            torch.Tensor, output tensor of recurrent network
+            (same size as class numbers)
+        """
         hidden, _ = self.encoder(embed)
         feature = hidden[-1, :, :]
         for layer in self.linear_layers:
@@ -34,11 +69,40 @@ class RecurrentNetwork(nn.Module):
 
 class LabelSimilarity(nn.Module):
     def __init__(self):
+        """
+        Label similarity component of CategoryPredictor. Calculates
+        the cosine similarity between label words and description words.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
         super(LabelSimilarity, self).__init__()
 
         self.cos = nn.CosineSimilarity(dim=2, eps=1e-8)
 
     def forward(self, embed, label_embed):
+        """
+        Forward propagation.
+
+        Parameters
+        ----------
+        embed
+            torch.Tensor, embeddings of inputs
+        label_embed
+            dict, dictionary with keys named after label words whose word embeddings
+            are stored in the values.
+        
+        Returns
+        -------
+        match_output
+            torch.Tensor, cosine word similarity scores
+            (same size as class numbers)
+        """
         match = []
         batch_size = embed.size(1)
         for key, value_list in label_embed.items():
@@ -67,6 +131,33 @@ class CategoryPredictor(nn.Module):
             pretrained_embed=True,
             lstm_layers=2,
     ):
+        """
+        Integrated Recurrent Network component with Label Similarity
+        component to form the CategoryPredictor.
+
+        Parameters
+        ----------
+        hidden_dim
+            int, size of the hidden layer in LSTM.
+        vocab_size
+            int, vocabulary size used in the word embeddings
+        word_embed
+            torchtext.vocab, pretrained word embedding if available.
+        embed_dim
+            int, embedding size
+        num_linear
+            int, number of linear layers
+        num_class
+            int, number of unique category labels
+        pretrained_embed
+            boolean, set to True if using pretrained word embeddings
+        lstm_layers
+            int, number of LSTM layers
+
+        Returns
+        -------
+        None
+        """
         super(CategoryPredictor, self).__init__()
 
         self.embedding = nn.Embedding(vocab_size, emb_dim)
@@ -83,6 +174,22 @@ class CategoryPredictor(nn.Module):
         self.predictor = nn.Linear(num_class * 2, num_class)
 
     def forward(self, seq, label_embed):
+        """
+        Integrate components for forward propagation.
+
+        Parameters
+        ----------
+        seq
+            torch.Tensor, short description word sequences
+        label_embed
+            dict, dictionary with keys named after label words whose word embeddings
+            are stored in the values.
+        
+        Returns
+        -------
+        preds
+            torch.Tensor, predicted logits
+        """
         # get the word embeddings for short descriptions
         embed = self.embedding(seq)
 
