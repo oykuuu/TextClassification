@@ -1,0 +1,25 @@
+{
+    "paths":
+    {
+        "folder": "~/Desktop/Oyku/Vela/org_data",
+        "output_dir": "output",
+        "train_filename": "train.csv",
+        "val_filename": "val.csv",
+        "test_filename": "val.csv",
+        "embedding_bin_directory": "./.vector_cache/wiki.en.vec"
+    },
+    "train_params":
+    {
+        "batch_size": 64,
+        "hidden_dim": 128,
+        "embedding_dim": 300,
+        "pretrained": true,
+        "epochs": 5,
+        "learning_rate": 1e-3,
+        "clip": 0.95,
+        "logit_threshold": 0.5,
+        "vocab": "FastText",
+        "id_column": "id",
+        "text_column": "text"
+    }
+}
